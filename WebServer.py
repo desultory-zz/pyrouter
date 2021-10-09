@@ -25,30 +25,18 @@ class WebServerResponder(BaseHTTPRequestHandler):
         self.print_content() 
 
 from http.server import ThreadingHTTPServer
+import socket
 #Web server Class
 class WebServer(ThreadingHTTPServer):
     def __init__(self, debug = False, port = 8080, address = '127.0.0.1', request_handler = WebServerResponder, *args, **kwargs):
         self.debug = debug
-        self.set_port(port)
-        self.set_address(address)
+        self.address = address
+        self.port = port
         self.running = False
         kwargs['server_address'] = (address, port)
         kwargs['RequestHandlerClass'] = request_handler
         super(WebServer, self).__init__(*args, **kwargs)
 
-    def set_address(self, address):
-        self.address = address
-
-    def set_port(self, port):
-        try:
-            port = int(port)
-        except ValueError:
-            return False
-        if port < (2**16 -1):
-            self.port = port
-            return True
-        return False
-    
     def serve(self):
         if self.debug:
             print(f'Starting server on http://{self.address}:{self.port}')
@@ -69,9 +57,10 @@ class WebServer(ThreadingHTTPServer):
         self.shutdown()
 
 class WebServerThread(Thread):
-    def __init__(self, run_server = False, debug = False, *args, **kwargs):
+    def __init__(self, run_server = False, debug = False, port = 8080, address = '127.0.0.1', *args, **kwargs):
         self.debug = debug
-        self.init_webserver()
+        self.set_address(address)
+        self.set_port(port)
         self.stop_event = Event()
         self.kill_signal = Event()
         Thread.__init__(self)
@@ -79,15 +68,25 @@ class WebServerThread(Thread):
             self.start_webserver()
 
     def init_webserver(self):
-        self.ws = WebServer(debug = self.debug)
+        self.ws = WebServer(debug = self.debug, port = self.port, address = self.address)
+
+    def set_port(self, port):
+        self.port = port
+
+    def set_address(self, address):
+        self.address = address
 
     def start_webserver(self):
         #Creates new threaded webserver instance since old one is nuked when the thread is stopped
         try:
-            if not isinstance(self.ws, WebServer):
+            try:
+                if not isinstance(self.ws, WebServer):
+                    self.init_webserver()
+            except AttributeError:
                 self.init_webserver()
-        except AttributeError:
-            self.init_webserver()
+        except PermissionError:
+            print(f"Failed to bind to socket {self.address}:{self.port}")
+            return False
         if self.debug:
             print(f"Thread status {self.is_alive()}")
         if self.is_alive():
@@ -124,7 +123,8 @@ class WebServerThread(Thread):
             if self.stop_event.is_set():
                 sleep(1)
                 if self.debug:
-                    print("Waiting to restart webserver")
+                    pass
+                    #print("Waiting to restart webserver")
                 continue
             if self.debug:
                 print(f'Starting webserver thread')
