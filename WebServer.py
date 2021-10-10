@@ -85,7 +85,13 @@ class WebServerThread(Thread):
         self.port = port
 
     def set_address(self, address):
-        self.address = address
+        try:
+            socket.inet_aton(address)
+            self.address = address
+            return True
+        except socket.error:
+            logging.error(f"Address {address} is not a valid IP address")
+        return False
 
     def start_webserver(self):
         #Creates new threaded webserver instance since old one is nuked when the thread is stopped
