@@ -1,6 +1,6 @@
 from threading import Thread, Event
 from time import sleep
-
+import logging
 from http.server import BaseHTTPRequestHandler
 #Webserver Responder Class
 class WebServerResponder(BaseHTTPRequestHandler):
@@ -28,8 +28,7 @@ from http.server import ThreadingHTTPServer
 import socket
 #Web server Class
 class WebServer(ThreadingHTTPServer):
-    def __init__(self, debug = False, port = 8080, address = '127.0.0.1', request_handler = WebServerResponder, *args, **kwargs):
-        self.debug = debug
+    def __init__(self, port = 8080, address = '127.0.0.1', request_handler = WebServerResponder, *args, **kwargs):
         self.address = address
         self.port = port
         self.running = False
@@ -38,27 +37,22 @@ class WebServer(ThreadingHTTPServer):
         super(WebServer, self).__init__(*args, **kwargs)
 
     def serve(self):
-        if self.debug:
-            print(f'Starting server on http://{self.address}:{self.port}')
+        logging.info(f'Starting server on http://{self.address}:{self.port}')
         self.running = True
         self.serve_forever()
         self.server_close()
         self.running = False
-        if self.debug:
-            print("Webserver has stoppped")
+        logging.info("Webserver has stoppped")
    
     def stop(self):
         if not self.running:
-            if self.debug:
-                print("Webserver is not running, not stopping")
+            logging.debug("Webserver is not running, not stopping")
             return False
-        if self.debug:
-            print("Stopping webserver")
+        logging.info("Stopping webserver")
         self.shutdown()
 
 class WebServerThread(Thread):
-    def __init__(self, run_server = False, debug = False, port = 8080, address = '127.0.0.1', *args, **kwargs):
-        self.debug = debug
+    def __init__(self, run_server = False, port = 8080, address = '127.0.0.1', *args, **kwargs):
         self.set_address(address)
         self.set_port(port)
         self.stop_event = Event()
@@ -68,7 +62,7 @@ class WebServerThread(Thread):
             self.start_webserver()
 
     def init_webserver(self):
-        self.ws = WebServer(debug = self.debug, port = self.port, address = self.address)
+        self.ws = WebServer(port = self.port, address = self.address)
 
     def set_port(self, port):
         self.port = port
@@ -85,47 +79,39 @@ class WebServerThread(Thread):
             except AttributeError:
                 self.init_webserver()
         except PermissionError:
-            print(f"Failed to bind to socket {self.address}:{self.port}")
+            logging.error(f"Failed to bind to socket {self.address}:{self.port}")
             return False
-        if self.debug:
-            print(f"Thread status {self.is_alive()}")
+        logging.debug(f"Thread status {self.is_alive()}")
         if self.is_alive():
             self.stop_event.clear()
-            if self.debug:
-                print("Thread is already running")
+            logging.debug("Thread is already running")
         else:
             self.start()
 
     def kill(self):
-        if self.debug:
-            print("Sending kill signal to thread")
+        logging.debug("Sending kill signal to thread")
         self.kill_signal.set()
         self.stop()
 
     def stop(self):
-        if self.debug:
-            print("Preparing to stop webserver")
+        logging.debug("Preparing to stop webserver")
         self.stop_event.set()
-        if self.stop_event.is_set() and self.debug:
-            print("Thread stop signal has been set")
-        if self.ws.stop() and self.debug:
-            print("Webserver has stopped")
+        if self.stop_event.is_set():
+            logging.debug("Thread stop signal has been set")
+        if self.ws.stop():
+            logging.info("Webserver has stopped")
         #delete the object so a fresh one will be made when server is restarted
         del self.ws
-        if self.debug:
-            print("Webserver has been deleted")
+        logging.debug("Webserver has been deleted")
 
     def run(self):
         while True:
             if self.kill_signal.is_set():
-                print("Kill signal received, ending thread")
+                logging.debug("Kill signal received, ending thread")
                 break
             if self.stop_event.is_set():
                 sleep(1)
-                if self.debug:
-                    pass
-                    #print("Waiting to restart webserver")
+                logging.debug("Waiting to restart webserver")
                 continue
-            if self.debug:
-                print(f'Starting webserver thread')
+            logging.debug(f'Starting webserver thread')
             self.ws.serve()

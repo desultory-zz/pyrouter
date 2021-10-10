@@ -3,17 +3,16 @@
 from WebServer import WebServerThread
 from xml.etree import ElementTree as ET
 import socket
+import logging
 
 class WSController():
-    def __init__(self, debug = False):
-        self.debug = debug
+    def __init__(self):
         self.init_webserver_thread()
         self.generate_menu()
 
     def init_webserver_thread(self):
-        if self.debug:
-            print("Initializing webserver thread object")
-        self.wst = WebServerThread(debug = self.debug)
+        logging.debug("Initializing webserver thread object")
+        self.wst = WebServerThread()
         if hasattr(self, "port"):
             self.wst.set_port(self.port)
         if hasattr(self, "ip"):
@@ -38,12 +37,11 @@ class WSController():
         if selection in self.menu.keys():
             return selection
         else:
-            print("Invalid choice")
+            logging.error("Invalid choice")
             return None
     
     def process_choice(self, choice):
-        if self.debug:
-            print(f"Selected choice:{choice} mapped function:{self.menu[choice][1]}")
+        logging.debug(f"Selected choice:{choice} mapped function:{self.menu[choice][1]}")
         self.menu[choice][1]()
 
     def display_menu(self):
@@ -73,7 +71,7 @@ class WSController():
             val = int(i)
             return val
         except ValueError:
-            print("Invalid input, an integer must be entered")
+            logging.error("Invalid input, an integer must be entered")
         return False
 
     def get_ip_input(self):
@@ -89,7 +87,7 @@ class WSController():
     def set_port(self):
         while not (port := self.get_int_input("Enter new port number: ")):
             if (port > 2**16 -1):
-                print("Port number is invalid")
+                logging.error("Port number is invalid")
                 continue
         self.port = port
         self.wst.set_port(port)
@@ -101,5 +99,6 @@ class WSController():
         self.wst.set_address(ip)
     
 if __name__ == "__main__":
-    menu = WSController(debug=True)
+    #logging.basicConfig(level=logging.INFO)
+    menu = WSController()
     menu.menu_loop()
