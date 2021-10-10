@@ -33,7 +33,7 @@ class WSController():
             selection = input(">")
         except KeyboardInterrupt:
             self.clean_exit()
-        if selection == "q" or selection.lower() == "quit":
+        if selection.lower() == "q" or selection.lower() == "quit":
             self.clean_exit()
         if selection in self.menu.keys():
             return selection
@@ -66,27 +66,41 @@ class WSController():
             pass
         quit()
         
-    def get_int_input(self, prompt = ">"):
+    def get_int_input(self, prompt = ">", minimum = None, maximum = None):
         try:
             i = input(prompt)
+            if i.lower() == "q" or i.lower() == "quit":
+                self.clean_exit()
             val = int(i)
+            if minimum is not None and val < minimum:
+                logging.error(f"Value {val} is below minimum {minimum}")
+                return False
+            if maximum is not None and val > maximum:
+                logging.error(f"Value {val} is above maximum {maximum}")
+                return False
             return val
         except ValueError:
             logging.error("Invalid input, an integer must be entered")
+        except KeyboardInterrupt:
+            self.clean_exit()
         return False
 
     def get_ip_input(self):
         try:
             i = input("Enter an IP address: ")
+            if i.lower() == "q" or i.lower() == "quit":
+                self.clean_exit()
             socket.inet_aton(i)
             return(i)
         except socket.error:
             print(f"IP address {i} is invalid")
             return False
+        except KeyboardInterrupt:
+            self.clean_exit()
 
 
     def set_port(self):
-        while not (port := self.get_int_input("Enter new port number: ")):
+        while (port := self.get_int_input("Enter new port number: ")) is False:
             if (port > 2**16 -1):
                 logging.error("Port number is invalid")
                 continue
@@ -94,7 +108,7 @@ class WSController():
         self.wst.set_port(port)
 
     def set_ip(self):
-        while not (ip := self.get_ip_input()):
+        while (ip := self.get_ip_input()) is False:
             continue
         self.ip = ip
         self.wst.set_address(ip)
@@ -106,9 +120,7 @@ class WSController():
         print("Warning - 30")
         print("Info - 20")
         print("Debug - 10")
-        while not(level := self.get_int_input("Enter desired logging level: ")):
-            if (level > 50):
-                logging.error("Level is invalid")
+        while (level := self.get_int_input("Enter desired logging level: ", minimum=0, maximum=50)) is False:
                 continue
         logging.debug(f"Setting log level to {level}")
         logging.getLogger().setLevel(level)

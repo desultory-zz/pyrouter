@@ -34,7 +34,7 @@ from http.server import ThreadingHTTPServer
 import socket
 #Web server Class
 class WebServer(ThreadingHTTPServer):
-    def __init__(self, port = 8080, address = '127.0.0.1', request_handler = WebServerResponder, *args, **kwargs):
+    def __init__(self, port = 8080, address = '127.0.0.tial1', request_handler = WebServerResponder, *args, **kwargs):
         self.address = address
         self.port = port
         self.running = False
@@ -71,6 +71,17 @@ class WebServerThread(Thread):
         self.ws = WebServer(port = self.port, address = self.address)
 
     def set_port(self, port):
+        try:
+            port = int(port)
+            if port < 1:
+                logging.error(f"Port ({port}) cannot be less than 1")
+                return False
+            if port < 1024:
+                logging.warning(f"Port ({port}) is lower than 1024, additional permissions may be needed")
+        except ValueError:
+            logging.error(f"Specified port ({port}) is not an integer")
+            return False
+        logging.debug(f"Port has been set to {port}")
         self.port = port
 
     def set_address(self, address):
@@ -90,19 +101,26 @@ class WebServerThread(Thread):
         logging.debug(f"Thread status {self.is_alive()}")
         if self.is_alive():
             self.stop_event.clear()
-            logging.debug("Thread is already running")
+            logging.info("Thread is already running")
         else:
             self.start()
 
     def kill(self):
-        logging.debug("Sending kill signal to thread")
-        self.kill_signal.set()
-        self.stop()
+        if not self.is_alive():
+            logging.debug("Not killing thread as it has not been started")
+        elif not hasattr(self, "ws"):
+            logging.debug("Webserver object has not been initialied, not killing")
+        else:
+            logging.debug("Sending kill signal")
+            self.kill_signal.set()
+            self.stop()
+            return True
+        return False
 
     def stop(self):
         try:
             if not hasattr(self, "ws"):
-                logging.debug("Webserver object has not been initialized")
+                logging.info("Webserver object has not been initialized")
                 return False
             if not isinstance(self.ws, WebServer):
                 logging.info("Webserver object is invalid")
