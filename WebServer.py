@@ -53,7 +53,7 @@ class WebServer(ThreadingHTTPServer):
     def stop(self):
         if not self.running:
             logging.debug("Webserver is not running, not stopping")
-            return False
+            return
         logging.info("Stopping webserver")
         self.shutdown()
 
@@ -74,13 +74,11 @@ class WebServerThread(Thread):
         try:
             port = int(port)
             if port < 1:
-                logging.error(f"Port ({port}) cannot be less than 1")
-                return False
+                raise ValueError(f"Port ({port}) cannot be less than 1")
             if port < 1024:
                 logging.warning(f"Port ({port}) is lower than 1024, additional permissions may be needed")
         except ValueError:
-            logging.error(f"Specified port ({port}) is not an integer")
-            return False
+            raise ValueError(f"Specified port ({port}) is not an integer")
         logging.debug(f"Port has been set to {port}")
         self.port = port
 
@@ -88,10 +86,8 @@ class WebServerThread(Thread):
         try:
             socket.inet_aton(address)
             self.address = address
-            return True
         except socket.error:
-            logging.error(f"Address {address} is not a valid IP address")
-        return False
+            raise socket.error(f"Address {address} is not a valid IP address")
 
     def start_webserver(self):
         #Creates new threaded webserver instance since old one is nuked when the thread is stopped
@@ -102,8 +98,7 @@ class WebServerThread(Thread):
             except AttributeError:
                 self.init_webserver()
         except PermissionError:
-            logging.error(f"Failed to bind to socket {self.address}:{self.port}")
-            return False
+            raise PermissionError(f"Failed to bind to socket {self.address}:{self.port}")
         logging.debug(f"Thread status {self.is_alive()}")
         if self.is_alive():
             self.stop_event.clear()
@@ -120,20 +115,18 @@ class WebServerThread(Thread):
             logging.debug("Sending kill signal")
             self.kill_signal.set()
             self.stop()
-            return True
-        return False
 
     def stop(self):
         try:
             if not hasattr(self, "ws"):
                 logging.info("Webserver object has not been initialized")
-                return False
+                return
             if not isinstance(self.ws, WebServer):
                 logging.info("Webserver object is invalid")
-                return False
+                return
         except AttributeError:
             logging.debug("Webserver is not stopping because it has not been started")
-            return False
+            return
         logging.debug("Preparing to stop webserver")
         self.stop_event.set()
         if self.stop_event.is_set():
@@ -143,7 +136,6 @@ class WebServerThread(Thread):
         #delete the object so a fresh one will be made when server is restarted
         del self.ws
         logging.debug("Webserver has been deleted")
-        return True
 
     def run(self):
         while True:

@@ -43,7 +43,10 @@ class WSController():
     
     def process_choice(self, choice):
         logging.debug(f"Selected choice:{choice} mapped function:{self.menu[choice][1]}")
-        self.menu[choice][1]()
+        try:
+            self.menu[choice][1]()
+        except PermissionError as e:
+            logging.error(e)
 
     def display_menu(self):
         menu_options = self.menu.keys()
