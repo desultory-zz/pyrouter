@@ -22,7 +22,13 @@ class WebServerResponder(BaseHTTPRequestHandler):
 
     #Respond to get requests
     def do_GET(self):
-        self.print_content() 
+        self.print_content()
+
+    def log_message(self, format, *args):
+        logging.info("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format%args))
+
+    def log_error(self, format, *args):
+        logging.error("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format%args))
 
 from http.server import ThreadingHTTPServer
 import socket
@@ -94,6 +100,16 @@ class WebServerThread(Thread):
         self.stop()
 
     def stop(self):
+        try:
+            if not hasattr(self, "ws"):
+                logging.debug("Webserver object has not been initialized")
+                return False
+            if not isinstance(self.ws, WebServer):
+                logging.info("Webserver object is invalid")
+                return False
+        except AttributeError:
+            logging.debug("Webserver is not stopping because it has not been started")
+            return False
         logging.debug("Preparing to stop webserver")
         self.stop_event.set()
         if self.stop_event.is_set():
@@ -103,6 +119,7 @@ class WebServerThread(Thread):
         #delete the object so a fresh one will be made when server is restarted
         del self.ws
         logging.debug("Webserver has been deleted")
+        return True
 
     def run(self):
         while True:

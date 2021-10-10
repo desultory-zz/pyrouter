@@ -20,11 +20,12 @@ class WSController():
 
     def generate_menu(self):
         menu = {}
-        menu['1'] = ["Start Webserver", self.wst.start_webserver]
-        menu['2'] = ["Stop Webserver", self.wst.stop]
-        menu['3'] = ["Kill thread", self.wst.kill]
-        menu['4'] = ["Set port", self.set_port]
-        menu['5'] = ["Set IP", self.set_ip]
+        menu['r'] = ["Start Webserver", self.wst.start_webserver]
+        menu['s'] = ["Stop Webserver", self.wst.stop]
+        menu['k'] = ["Kill thread", self.wst.kill]
+        menu['p'] = ["Set port", self.set_port]
+        menu['i'] = ["Set IP", self.set_ip]
+        menu['d'] = ["Change debug level", self.set_debug]
         self.menu = menu
 
     def get_input(self):
@@ -97,8 +98,21 @@ class WSController():
             continue
         self.ip = ip
         self.wst.set_address(ip)
+
+    def set_debug(self):
+        print("Levels: 0 - 50")
+        print("Critical - 50")
+        print("Error - 40")
+        print("Warning - 30")
+        print("Info - 20")
+        print("Debug - 10")
+        while not(level := self.get_int_input("Enter desired logging level: ")):
+            if (level > 50):
+                logging.error("Level is invalid")
+                continue
+        logging.debug(f"Setting log level to {level}")
+        logging.getLogger().setLevel(level)
     
 if __name__ == "__main__":
-    #logging.basicConfig(level=logging.INFO)
     menu = WSController()
     menu.menu_loop()
