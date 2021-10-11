@@ -79,13 +79,14 @@ class WebServerThread(Thread):
                 logging.warning(f"Port ({port}) is lower than 1024, additional permissions may be needed")
         except ValueError:
             raise ValueError(f"Specified port ({port}) is not an integer")
-        logging.debug(f"Port has been set to {port}")
         self.port = port
+        logging.debug(f"Port has been set to {port}")
 
     def set_address(self, address):
         try:
             socket.inet_aton(address)
             self.address = address
+            logging.debug(f"IP address has been set to {address}")
         except socket.error:
             raise socket.error(f"Address {address} is not a valid IP address")
 
